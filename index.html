@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gestion de stock d'armes">
+    <title>Gestion de Stock - Armes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>⚔️ Stock Armes</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" id="btn-inventory">Inventaire</a></li>
+                <li><a href="#" id="btn-admin">Admin</a></li>
+            </ul>
+            <div class="burger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Page Inventaire -->
+        <section id="inventory-page" class="page active">
+            <div class="page-header">
+                <h2>Inventaire des Armes</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total:</span>
+                        <span class="stat-value" id="total-weapons">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Valeur totale:</span>
+                        <span class="stat-value" id="total-value">0 €</span>
+                    </div>
+                    <button id="btn-refresh-inventory" class="btn-refresh" title="Rafraîchir depuis la base de données">🔄 Rafraîchir</button>
+                </div>
+            </div>
+            <div id="weapons-grid" class="weapons-grid">
+                <!-- Les armes seront ajoutées dynamiquement ici -->
+            </div>
+        </section>
+
+        <!-- Page Admin - Connexion -->
+        <section id="admin-login-page" class="page">
+            <div class="admin-login-container">
+                <h2>Panel Administrateur</h2>
+                <form id="admin-login-form" class="admin-form">
+                    <input type="password" id="admin-code" placeholder="Code administrateur" required>
+                    <button type="submit">Se connecter</button>
+                    <p id="login-error" class="error-message"></p>
+                </form>
+            </div>
+        </section>
+
+        <!-- Page Admin - Gestion -->
+        <section id="admin-page" class="page">
+            <div class="admin-container">
+                <div class="admin-header">
+                    <h2>Panel Administrateur</h2>
+                    <div class="admin-header-buttons">
+                        <button id="btn-admin-inventory-tab" class="tab-btn active">Gestion</button>
+                        <button id="btn-admin-inventory-list-tab" class="tab-btn">Inventaire Admin</button>
+                        <button id="btn-admin-log-tab" class="tab-btn">Logs</button>
+                        <button id="btn-admin-settings-tab" class="tab-btn">Settings</button>
+                        <button id="btn-logout" class="logout-btn">Déconnexion</button>
+                    </div>
+                </div>
+
+                <!-- Onglet Gestion -->
+                <div id="admin-tab-gestion" class="admin-tab active">
+                    <!-- Formulaire d'ajout/modification -->
+                    <div class="admin-form-section">
+                        <h3 id="form-title">Ajouter une arme</h3>
+                        <form id="weapon-form" class="admin-form">
+                            <input type="hidden" id="weapon-id">
+                            <input type="text" id="weapon-name" placeholder="Nom de l'arme" required>
+                            <div class="form-row">
+                                <input type="text" id="weapon-purchase-price" placeholder="Prix d'achat (€)" inputmode="numeric" required>
+                                <input type="text" id="weapon-sale-price" placeholder="Prix de vente (€)" inputmode="numeric" required>
+                            </div>
+                            <div class="form-row">
+                                <input type="text" id="weapon-quantity" placeholder="Quantité en stock" inputmode="numeric" value="1" required>
+                                <select id="weapon-money-type" required>
+                                    <option value="propre">Argent Propre</option>
+                                    <option value="sale">Argent Sale</option>
+                                </select>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" id="submit-btn">Ajouter</button>
+                                <button type="button" id="cancel-btn" style="display: none;">Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Liste des armes pour gestion -->
+                    <div class="admin-list-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3>Liste des armes</h3>
+                            <button id="btn-refresh-admin-list" class="btn-refresh" title="Rafraîchir depuis la base de données">🔄 Rafraîchir</button>
+                        </div>
+                        <div id="admin-weapons-list" class="admin-weapons-list">
+                            <!-- Les armes seront ajoutées dynamiquement ici -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Inventaire Admin -->
+                <div id="admin-tab-inventory" class="admin-tab">
+                    <div class="page-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3>Inventaire Admin - Gestion des Ventes</h3>
+                            <button id="btn-refresh-admin-inventory" class="btn-refresh" title="Rafraîchir depuis la base de données">🔄 Rafraîchir</button>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Bénéfices propres:</span>
+                                <span class="stat-value" id="total-profits-clean">0 €</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Bénéfices sales:</span>
+                                <span class="stat-value" id="total-profits-dirty">0 €</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total:</span>
+                                <span class="stat-value" id="total-profits">0 €</span>
+                                <button id="btn-reset-profits" class="reset-profits-btn" title="Réinitialiser les bénéfices">🔄 Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="admin-inventory-grid" class="weapons-grid">
+                        <!-- Les armes avec bouton "Vendu" seront ajoutées ici -->
+                    </div>
+                </div>
+
+                <!-- Modale de vente avec prix personnalisé -->
+                <div id="sell-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Vendre une arme</h3>
+                            <button class="modal-close" onclick="closeSellModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="weapon-info-modal">
+                                <p><strong>Arme:</strong> <span id="modal-weapon-name"></span></p>
+                                <p><strong>Prix d'achat:</strong> <span id="modal-purchase-price"></span> €</p>
+                                <p><strong>Prix de vente suggéré:</strong> <span id="modal-suggested-price"></span> €</p>
+                            </div>
+                            <form id="sell-form" class="admin-form">
+                                <label for="modal-sale-price">Prix de vente réel:</label>
+                                <input type="text" id="modal-sale-price" placeholder="Prix de vente (€)" required>
+                                <p class="modal-hint">Laissez vide pour utiliser le prix suggéré</p>
+                                <label for="modal-money-type">Type d'argent:</label>
+                                <select id="modal-money-type" required>
+                                    <option value="propre">Argent Propre</option>
+                                    <option value="sale">Argent Sale</option>
+                                </select>
+                                <div class="profit-preview">
+                                    <p><strong>Bénéfice estimé:</strong> <span id="modal-profit-preview">0 €</span></p>
+                                </div>
+                                <div class="form-buttons">
+                                    <button type="button" onclick="closeSellModal()">Annuler</button>
+                                    <button type="submit">Confirmer la vente</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Logs -->
+                <div id="admin-tab-logs" class="admin-tab">
+                    <div class="logs-header">
+                        <h3>Journal des activités</h3>
+                        <button id="btn-clear-logs" class="clear-logs-btn">Effacer les logs</button>
+                    </div>
+                    <div id="logs-container" class="logs-container">
+                        <!-- Les logs seront ajoutés dynamiquement ici -->
+                    </div>
+                </div>
+
+                <!-- Onglet Settings -->
+                <div id="admin-tab-settings" class="admin-tab">
+                    <div class="settings-container">
+                        <h3>Paramètres</h3>
+                        
+                        <div class="settings-section">
+                            <h4>Notifications</h4>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="setting-notifications">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <strong>Notifications de connexion</strong>
+                                    <p>Afficher une notification lorsqu'un utilisateur se connecte au site</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h4>Système de vente/achat</h4>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="setting-sales-enabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <strong>Activer les demandes d'achat</strong>
+                                    <p>Permettre aux visiteurs de faire des demandes d'achat depuis l'inventaire</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h4>Personnalisation</h4>
+                            <div class="setting-item">
+                                <label class="switch">
+                                    <input type="checkbox" id="setting-info-bubble">
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="setting-info">
+                                    <strong>Bulle d'information</strong>
+                                    <p>Afficher une bulle d'information à gauche du site</p>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label for="setting-info-text">Texte de la bulle d'information:</label>
+                                <textarea id="setting-info-text" placeholder="Votre texte d'information..." rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h4>Demandes d'achat en attente</h4>
+                            <div id="pending-requests-container" class="pending-requests-container">
+                                <!-- Les demandes seront ajoutées ici -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modale de demande d'achat (pour les visiteurs) -->
+        <div id="purchase-request-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Demande d'achat</h3>
+                    <button class="modal-close" onclick="closePurchaseRequestModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="weapon-info-modal">
+                        <p><strong>Arme:</strong> <span id="request-weapon-name"></span></p>
+                        <p><strong>Prix de base:</strong> <span id="request-weapon-price"></span> €</p>
+                    </div>
+                    <form id="purchase-request-form" class="admin-form">
+                        <label for="request-name">Votre nom:</label>
+                        <input type="text" id="request-name" placeholder="Votre nom" required>
+                        
+                        <label for="request-ig">Numéro IG (In-Game):</label>
+                        <input type="text" id="request-ig" placeholder="Votre numéro IG" required>
+                        
+                        <label for="request-price-type">Type d'achat:</label>
+                        <select id="request-price-type" required>
+                            <option value="base">Acheter au prix de base</option>
+                            <option value="custom">Proposer un prix personnalisé</option>
+                        </select>
+                        
+                        <div id="custom-price-container" style="display: none;">
+                            <label for="request-custom-price">Prix proposé (€):</label>
+                            <input type="text" id="request-custom-price" placeholder="Prix proposé" inputmode="numeric">
+                        </div>
+                        
+                        <div class="form-buttons">
+                            <button type="button" onclick="closePurchaseRequestModal()">Annuler</button>
+                            <button type="submit">Envoyer la demande</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Gestion de Stock - Armes</p>
+    </footer>
+
+    <!-- Bloc d'initialisation Firebase et Firestore -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs, writeBatch, query, where, limit, FieldValue, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      // Charger la configuration depuis le serveur (variables d'environnement uniquement)
+      async function initializeFirebase() {
+        try {
+          const response = await fetch('/api/config');
+          if (!response.ok) {
+            throw new Error('Impossible de charger la configuration Firebase');
+          }
+          
+          const config = await response.json();
+          
+          if (!config.firebase || !config.firebase.apiKey) {
+            throw new Error('FIREBASE_API_KEY non configurée dans les variables d\'environnement');
+          }
+
+          const firebaseConfig = config.firebase;
+          window.ADMIN_CODE_REMOTE = config.adminCode;
+
+          // Initialisation de Firebase
+          const app = initializeApp(firebaseConfig);
+          const db = getFirestore(app);
+
+          // Rendez 'db' et les fonctions Firestore accessibles globalement pour script.js
+          window.db = db;
+          window.firebaseCollection = collection;
+          window.firebaseAddDoc = addDoc;
+          window.firebaseOnSnapshot = onSnapshot;
+          window.firebaseDoc = doc;
+          window.firebaseUpdateDoc = updateDoc;
+          window.firebaseDeleteDoc = deleteDoc;
+          window.firebaseGetDoc = getDoc;
+          window.firebaseGetDocs = getDocs;
+          window.firebaseWriteBatch = writeBatch;
+          window.firebaseQuery = query;
+          window.firebaseWhere = where;
+          window.firebaseLimit = limit;
+          window.firebaseFieldValue = FieldValue;
+          window.firebaseSetDoc = setDoc;
+
+          // Indiquer que Firebase est prêt
+          window.firebaseReady = true;
+          if (window.onFirebaseReady) {
+            window.onFirebaseReady();
+          }
+        } catch (error) {
+          console.error('Erreur chargement configuration Firebase:', error);
+          alert('Erreur: Configuration Firebase manquante. Vérifiez que FIREBASE_API_KEY est configurée dans Render.');
+        }
+      }
+
+      // Initialiser Firebase au chargement
+      initializeFirebase();
+    </script>
+
+    <!-- Votre script principal -->
+    <script src="script.js"></script>
+</body>
+</html>
