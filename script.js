@@ -269,6 +269,14 @@ function setupEventListeners() {
         showAdminTab('settings');
         await loadSettings();
         await loadPendingRequests();
+        
+        // Vérifier que les éléments de génération de message existent
+        const messageSection = document.querySelector('h4');
+        if (messageSection && messageSection.textContent.includes('Message d\'affichage')) {
+            console.log('[DEBUG] Section Message d\'affichage trouvée');
+        } else {
+            console.warn('[DEBUG] Section Message d\'affichage non trouvée');
+        }
     });
 
     // Effacer les logs
@@ -466,41 +474,53 @@ function setupEventListeners() {
     });
 
     // Message d'affichage - Blanchiment
-    document.getElementById('setting-laundering-enabled').addEventListener('change', (e) => {
-        const percentageContainer = document.getElementById('laundering-percentage-container');
-        if (e.target.checked) {
-            percentageContainer.style.display = 'flex';
-            percentageContainer.style.alignItems = 'center';
-        } else {
-            percentageContainer.style.display = 'none';
-        }
-    });
+    const launderingEnabledEl = document.getElementById('setting-laundering-enabled');
+    if (launderingEnabledEl) {
+        launderingEnabledEl.addEventListener('change', (e) => {
+            const percentageContainer = document.getElementById('laundering-percentage-container');
+            if (percentageContainer) {
+                if (e.target.checked) {
+                    percentageContainer.style.display = 'flex';
+                    percentageContainer.style.alignItems = 'center';
+                } else {
+                    percentageContainer.style.display = 'none';
+                }
+            }
+        });
+    }
 
     // Bouton générer message
-    document.getElementById('btn-generate-message').addEventListener('click', async () => {
-        await generateDisplayMessage();
-    });
+    const btnGenerateMessage = document.getElementById('btn-generate-message');
+    if (btnGenerateMessage) {
+        btnGenerateMessage.addEventListener('click', async () => {
+            await generateDisplayMessage();
+        });
+    }
 
     // Bouton copier message
-    document.getElementById('btn-copy-message').addEventListener('click', async () => {
-        const messageTextarea = document.getElementById('generated-message');
-        const message = messageTextarea.value;
-        
-        try {
-            // Utiliser l'API moderne si disponible
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(message);
-            } else {
-                // Fallback pour les anciens navigateurs
-                messageTextarea.select();
-                document.execCommand('copy');
+    const btnCopyMessage = document.getElementById('btn-copy-message');
+    if (btnCopyMessage) {
+        btnCopyMessage.addEventListener('click', async () => {
+            const messageTextarea = document.getElementById('generated-message');
+            if (!messageTextarea) return;
+            const message = messageTextarea.value;
+            
+            try {
+                // Utiliser l'API moderne si disponible
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(message);
+                } else {
+                    // Fallback pour les anciens navigateurs
+                    messageTextarea.select();
+                    document.execCommand('copy');
+                }
+                showNotification('Message copié dans le presse-papiers !', 'success');
+            } catch (error) {
+                console.error('Erreur lors de la copie:', error);
+                showNotification('Erreur lors de la copie', 'error');
             }
-            showNotification('Message copié dans le presse-papiers !', 'success');
-        } catch (error) {
-            console.error('Erreur lors de la copie:', error);
-            showNotification('Erreur lors de la copie', 'error');
-        }
-    });
+        });
+    }
 
     document.getElementById('request-price-type').addEventListener('change', (e) => {
         const customContainer = document.getElementById('custom-price-container');
@@ -2053,10 +2073,36 @@ async function loadSettings() {
     const infoBubble = await getSetting('infoBubble');
     const infoText = await getSetting('infoText');
     
-    document.getElementById('setting-notifications').checked = notifications;
-    document.getElementById('setting-sales-enabled').checked = salesEnabled;
-    document.getElementById('setting-info-bubble').checked = infoBubble;
-    document.getElementById('setting-info-text').value = infoText;
+    const notificationsEl = document.getElementById('setting-notifications');
+    const salesEnabledEl = document.getElementById('setting-sales-enabled');
+    const infoBubbleEl = document.getElementById('setting-info-bubble');
+    const infoTextEl = document.getElementById('setting-info-text');
+    
+    if (notificationsEl) notificationsEl.checked = notifications;
+    if (salesEnabledEl) salesEnabledEl.checked = salesEnabled;
+    if (infoBubbleEl) infoBubbleEl.checked = infoBubble;
+    if (infoTextEl) infoTextEl.value = infoText;
+    
+    // Vérifier que la section Message d'affichage existe
+    const messageSection = document.querySelector('h4');
+    const messageSectionTitle = Array.from(document.querySelectorAll('h4')).find(h => h.textContent.includes('Message d\'affichage'));
+    if (messageSectionTitle) {
+        console.log('[SETTINGS] Section "Message d\'affichage" trouvée');
+    } else {
+        console.error('[SETTINGS] Section "Message d\'affichage" NON TROUVÉE dans le HTML');
+    }
+    
+    // Vérifier les éléments de génération de message
+    const btnGenerate = document.getElementById('btn-generate-message');
+    const launderingEnabled = document.getElementById('setting-laundering-enabled');
+    if (btnGenerate && launderingEnabled) {
+        console.log('[SETTINGS] Tous les éléments de génération de message sont présents');
+    } else {
+        console.error('[SETTINGS] Éléments manquants:', {
+            btnGenerate: !!btnGenerate,
+            launderingEnabled: !!launderingEnabled
+        });
+    }
 }
 
 // Initialiser les settings au chargement
@@ -2145,9 +2191,11 @@ async function generateDisplayMessage() {
         }
 
         // Vérifier si le blanchiment est activé
-        const launderingEnabled = document.getElementById('setting-laundering-enabled').checked;
-        const launderingPercentage = launderingEnabled 
-            ? parseInt(document.getElementById('setting-laundering-percentage').value) || 5 
+        const launderingEnabledEl = document.getElementById('setting-laundering-enabled');
+        const launderingEnabled = launderingEnabledEl ? launderingEnabledEl.checked : false;
+        const launderingPercentageEl = document.getElementById('setting-laundering-percentage');
+        const launderingPercentage = launderingEnabled && launderingPercentageEl
+            ? parseInt(launderingPercentageEl.value) || 5 
             : 0;
 
         // Construire le message
@@ -2175,8 +2223,14 @@ async function generateDisplayMessage() {
         // Afficher le message
         const messageContainer = document.getElementById('generated-message-container');
         const messageTextarea = document.getElementById('generated-message');
-        messageTextarea.value = message;
-        messageContainer.style.display = 'block';
+        
+        if (messageTextarea) {
+            messageTextarea.value = message;
+        }
+        
+        if (messageContainer) {
+            messageContainer.style.display = 'block';
+        }
 
         showNotification('Message généré avec succès !', 'success');
     } catch (error) {
