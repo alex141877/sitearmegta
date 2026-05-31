@@ -784,7 +784,8 @@ function createAdminWeaponItemGrouped(group) {
             </div>
         </div>
         <div class="admin-weapon-actions">
-            <button class="btn-edit" onclick="editWeaponGroup('${nameEsc}')">Modifier</button>
+            <button type="button" class="btn-edit" onclick="editWeaponGroup('${nameEsc}')">Modifier</button>
+            <button type="button" class="btn-delete" onclick="deleteWeaponGroup('${nameEsc}')">Supprimer</button>
         </div>`;
     return item;
 }
@@ -1114,17 +1115,46 @@ function editWeapon(id) {
     if (weapon) editWeaponGroup(weapon.name);
 }
 
-// Supprimer une arme
+// Supprimer une arme (une ligne de stock)
 async function deleteWeapon(id) {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette arme ?')) {
-        let weapons = getWeapons();
-        const weapon = weapons.find(w => w.id === id);
+        const weapon = getWeapons().find((w) => w.id === id);
         if (weapon) {
             await addLog('suppression', `Suppression: ${weapon.name} (${weapon.quantity} unités)`, 0);
         }
         await deleteWeaponFromDB(id);
-        // Les listeners Firestore mettront à jour automatiquement
     }
+}
+
+// Supprimer toutes les entrées stock d'une arme (propre + sale)
+async function deleteWeaponGroup(name) {
+    const weapons = getWeapons().filter((w) => w.name === name);
+    if (weapons.length === 0) {
+        alert('Arme introuvable');
+        return;
+    }
+    if (
+        !confirm(
+            `Supprimer "${name}" et tout son stock ?\n(${weapons.length} entrée(s) — propre et/ou sale)`
+        )
+    ) {
+        return;
+    }
+
+    let totalQty = 0;
+    for (const weapon of weapons) {
+        totalQty += weapon.quantity || 0;
+        await deleteWeaponFromDB(weapon.id);
+    }
+    await addLog('suppression', `Suppression groupe: ${name} (${totalQty} unités au total)`, 0);
+
+    if (typeof loadWeaponsFromFirestore === 'function' && window.db) {
+        await loadWeaponsFromFirestore();
+    }
+    await loadAdminWeaponsList();
+    await loadInventory();
+    if (typeof loadAdminInventory === 'function') await loadAdminInventory();
+    showNotification(`"${name}" supprimée`, 'success');
 }
 
 // Réinitialiser le formulaire
@@ -2681,6 +2711,7 @@ function showNotification(message, type = 'info') {
 // Exposer les fonctions pour les boutons onclick
 window.editWeapon = editWeapon;
 window.editWeaponGroup = editWeaponGroup;
+window.deleteWeaponGroup = deleteWeaponGroup;
 window.deleteWeapon = deleteWeapon;
 window.sellWeapon = sellWeapon;
 window.sellWeaponByName = sellWeaponByName;
